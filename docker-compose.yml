@@ -1,0 +1,55 @@
+version: '2.2'
+services:
+
+  db:
+    container_name: db
+    image: mysql:5.7
+    restart: always
+    volumes:
+      - ./db_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: database
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    networks:
+      - database
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  backup:
+    container_name: backup
+    image: mysql:5.7
+    restart: unless-stopped
+    # Database backups prune interval (replace with yours). Default is 7 days.
+    # find /backup -type f -mtime +7 | xargs rm -f
+
+    # Backup interval (replace with yours). Default is 1 day.
+    # sleep 24h
+    command: sh -c 'sleep 30m
+             && while true; do
+             mysqldump
+             -h db
+             -p database
+             -u user
+             --no-tablespaces
+             --password=$$MYSQL_PASSWORD | gzip > /backup/backup-$$(date "+%Y-%m-%d_%H-%M").gz
+             && find /backup -type f -mtime +7 | xargs rm -f;
+             sleep 24h; done'
+    volumes:
+      - ./backup:/backup
+      - ./db_data:/var/lib/mysql
+    environment:
+      MYSQL_PASSWORD: password
+    networks:
+      - database
+    depends_on:
+      db:
+        condition: service_healthy
+
+networks:
+  database:
+    external: true
