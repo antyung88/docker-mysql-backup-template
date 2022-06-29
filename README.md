@@ -1,4 +1,4 @@
-# docker-compose-mysql-backup-template
+# docker-mysql-backup-template
 Additional MySQL Container with Health Checks and Periodic Backups in docker-compose
 
 # Usage
